@@ -12,25 +12,25 @@ contract VehicleFactory is Authorizable {
 
     struct Vehicle {
         // Inmutable
-        string numberPlate;
-        string brand;
-        string model;
+        bytes32 numberPlate;
+        bytes32 brand;
+        bytes32 model;
 
         // Mutable
-        string color;
-        string serialNumber; // chassis
-        string motorNumber;
-        string reason;
+        bytes32 color;
+        bytes32 serialNumber; // chassis
+        bytes32 motorNumber;
+        bytes32 reason;
 
-        string[] photos;
-        string[] documents;
+        bytes32[] photos;
+        bytes32[] documents;
         VehicleOwner[] owners;
         address employeeAddress;
     }
 
     struct VehicleOwner {
         uint dni;
-        string name;
+        bytes32 name;
     }
 
 
@@ -48,13 +48,18 @@ contract VehicleFactory is Authorizable {
         return vehiclesNumberPlate.length;
     }
 
+    function getVehicles() 
+    public view returns (bytes32[]) {
+        return vehiclesNumberPlate;
+    }
+
     function getVehicle
     (
-        string _numberPlate
+        bytes32 _numberPlate
     )
-    public view returns (string, string, string, string, string, string, string) {
-        bytes32 numberPlateKey = keccak256(abi.encodePacked(_numberPlate));
-        Vehicle storage vehicle = vehicles[numberPlateKey];
+    public view returns (bytes32, bytes32, bytes32, bytes32, bytes32, bytes32, bytes32) {
+        //bytes32 numberPlateKey = keccak256(abi.encodePacked(_numberPlate));
+        Vehicle storage vehicle = vehicles[_numberPlate];
 
         return (
             vehicle.numberPlate, vehicle.brand, vehicle.model,
@@ -64,15 +69,16 @@ contract VehicleFactory is Authorizable {
 
     function addVehicle
     (
-        string _numberPlate, string _brand, string _model,
-        string _color, string _serialNumber, string _motorNumber, string _reason//,
-        //string[] _photos, string[] _documents, VehicleOwner[] _owners
+        bytes32 _numberPlate, bytes32 _brand, bytes32 _model,
+        bytes32 _color, bytes32 _serialNumber, bytes32 _motorNumber, bytes32 _reason//,
+        //bytes32[] _photos, bytes32[] _documents, VehicleOwner[] _owners
     )
     public onlyEmployee {
-        bytes32 numberPlateKey = keccak256(abi.encodePacked(_numberPlate));
-        require(_compareStrings(vehicles[numberPlateKey].numberPlate, ""), "The vehicle is already registered.");
+        //bytes32 numberPlateKey = keccak256(abi.encodePacked(_numberPlate));
+        //require(_compareStrings(vehicles[_numberPlate].numberPlate, ""), "The vehicle is already registered.");
+        require(vehicles[_numberPlate].numberPlate == 0, "The vehicle is already registered.");
 
-        Vehicle storage vehicle = vehicles[numberPlateKey];
+        Vehicle storage vehicle = vehicles[_numberPlate];
         vehicle.numberPlate = _numberPlate;
         vehicle.brand = _brand;
         vehicle.model = _model;
@@ -87,7 +93,7 @@ contract VehicleFactory is Authorizable {
         //vehicle.owners = _owners;
         vehicle.employeeAddress = msg.sender;
 
-        vehiclesNumberPlate.push(numberPlateKey);
+        vehiclesNumberPlate.push(_numberPlate);
     }
 
 

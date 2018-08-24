@@ -1,3 +1,8 @@
+// Include web3 library so we can query accounts.
+const Web3 = require('web3')
+// Instantiate new web3 object pointing toward an Ethereum node.
+let web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:7545"))
+
 const Authorizable = artifacts.require("Authorizable");
 
 contract('Authorizable', async (accounts) => {
@@ -20,7 +25,7 @@ contract('Authorizable', async (accounts) => {
         let _name   = "Ken Kina Admin";
 
         await instance.setAdministrator(
-            _toAdd, _dni, _name,
+            _toAdd, web3.utils.utf8ToHex(_dni), web3.utils.utf8ToHex(_name),
             { from: ownerAddress }
         );
 
@@ -33,8 +38,8 @@ contract('Authorizable', async (accounts) => {
             administrator.isAdministrator, administrator.isEmployee
         ] = await instance.getEmployee.call(adminAddress);
 
-        assert.equal(administrator.dni, _dni);
-        assert.equal(administrator.name, _name);
+        assert.equal(web3.utils.hexToUtf8(administrator.dni), _dni);
+        assert.equal(web3.utils.hexToUtf8(administrator.name), _name);
         assert.equal(administrator.isAdministrator, true);
         assert.equal(administrator.isEmployee, true);
     });
@@ -47,7 +52,7 @@ contract('Authorizable', async (accounts) => {
         let _name   = "Ken Kina Employee";
 
         await instance.setEmployee(
-            _toAdd, _dni, _name,
+            _toAdd, web3.utils.utf8ToHex(_dni), web3.utils.utf8ToHex(_name),
             { from: adminAddress }
         );
 
@@ -59,8 +64,8 @@ contract('Authorizable', async (accounts) => {
             employee.dni, employee.name, employee.isAdministrator, employee.isEmployee
         ] = await instance.getEmployee.call(employeeAddress);
 
-        assert.equal(employee.dni, _dni);
-        assert.equal(employee.name, _name);
+        assert.equal(web3.utils.hexToUtf8(employee.dni), _dni);
+        assert.equal(web3.utils.hexToUtf8(employee.name), _name);
         assert.equal(employee.isAdministrator, false);
         assert.equal(employee.isEmployee, true);
     });
@@ -85,8 +90,8 @@ contract('Authorizable', async (accounts) => {
             employee.dni, employee.name, employee.isAdministrator, employee.isEmployee
         ] = await instance.getEmployee.call(employeeAddress);
 
-        assert.equal(employee.dni, _dni);
-        assert.equal(employee.name, _name);
+        assert.equal(web3.utils.hexToUtf8(employee.dni), _dni);
+        assert.equal(web3.utils.hexToUtf8(employee.name), _name);
         assert.equal(employee.isAdministrator, false);
         assert.equal(employee.isEmployee, false);
     });
@@ -112,8 +117,8 @@ contract('Authorizable', async (accounts) => {
             administrator.isAdministrator, administrator.isEmployee
         ] = await instance.getEmployee.call(adminAddress);
 
-        assert.equal(administrator.dni, _dni);
-        assert.equal(administrator.name, _name);
+        assert.equal(web3.utils.hexToUtf8(administrator.dni), _dni);
+        assert.equal(web3.utils.hexToUtf8(administrator.name), _name);
         assert.equal(administrator.isAdministrator, false);
         assert.equal(administrator.isEmployee, true);
     });

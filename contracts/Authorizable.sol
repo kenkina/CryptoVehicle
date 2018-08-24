@@ -9,8 +9,8 @@ import "./ownable.sol";
 contract Authorizable is Ownable {
 
     struct Employee {
-        string dni;
-        string name;
+        bytes32 dni;
+        bytes32 name;
         bool isAdministrator;
         bool isEmployee;
     }
@@ -35,12 +35,12 @@ contract Authorizable is Ownable {
     }
 
     function getEmployee(address _employeeAddress) 
-    public view returns (string, string, bool, bool) {
+    public view returns (bytes32, bytes32, bool, bool) {
         Employee storage employee = employees[_employeeAddress];
         return (employee.dni, employee.name, employee.isAdministrator, employee.isEmployee);
     }
 
-    function setAdministrator(address _toAdd, string _dni, string _name) 
+    function setAdministrator(address _toAdd, bytes32 _dni, bytes32 _name) 
     public onlyOwner {
         require(_toAdd != address(0), "You attempted to add permissions to 0x0 address.");
 
@@ -58,7 +58,7 @@ contract Authorizable is Ownable {
         employees[_toRemove].isAdministrator = false;
     }
 
-    function setEmployee(address _toAdd, string _dni, string _name) 
+    function setEmployee(address _toAdd, bytes32 _dni, bytes32 _name) 
     public onlyAdministrator {
         require(_toAdd != address(0), "You attempted to add permissions to 0x0 address.");
 
