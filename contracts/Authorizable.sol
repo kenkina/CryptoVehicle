@@ -29,6 +29,16 @@ contract Authorizable is Ownable {
         _;
     }
 
+    function isEmployee(address _employeeAddress)
+    public view returns (bool) {
+        return employees[_employeeAddress].isEmployee;
+    }
+
+    function isAdministrator(address _employeeAddress)
+    public view returns (bool) {
+        return employees[_employeeAddress].isAdministrator;
+    }
+
     function getEmployeesCount() 
     public view returns (uint) {
         return employeesAccounts.length;
@@ -52,7 +62,7 @@ contract Authorizable is Ownable {
         }
     }
 
-    function removeAdministrator(address _toRemove) 
+    function removeAdministrator(address _toRemove)
     public onlyOwner {
         require(_toRemove != address(0), "You attempted to add permissions to 0x0 address.");
         employees[_toRemove].isAdministrator = false;

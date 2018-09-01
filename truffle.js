@@ -24,7 +24,9 @@ module.exports = {
     development: {
       host: "127.0.0.1",
       port: 7545,
-      network_id: "*" // Match any network id
+      network_id: "*", // Match any network id
+      gas: 6712388,
+      gasPrice: 100000000000
       // gas      - gas limit (d. 4712388)
       // gasPrice - gas price (d. 100000000000, 100 Shannon, 100 GWei, 100 nanoEther)
       // from     - from address (d. first from Ethereum client)
@@ -34,7 +36,7 @@ module.exports = {
   solc: {
     optimizer: {
       enabled: true,
-      runs: 500
+      runs: 200
     }
   }
 };
