@@ -50,7 +50,9 @@
   },
   "dependencies": {
     "dotenv": "^2.0.0",
+    "ipfs-api": "^24.0.1",
     "react": "^15.4.2",
+    "react-bootstrap": "^0.32.3",
     "react-dom": "^15.4.2"
   },
   "scripts": {

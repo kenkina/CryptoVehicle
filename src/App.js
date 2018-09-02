@@ -1,7 +1,9 @@
+import {Table, Grid, Button, Form } from 'react-bootstrap';
 import React, { Component } from 'react'
 //import SimpleStorageContract from '../build/contracts/SimpleStorage.json'
 import VehicleFactoryContract from '../build/contracts/VehicleFactory.json'
 import getWeb3 from './utils/getWeb3'
+import ipfs from './ipfs';
 
 import './css/oswald.css'
 import './css/open-sans.css'
@@ -15,11 +17,37 @@ class TdList extends Component {
       <table>
         <tbody>
           {this.props.array.map((item, i) => {
-            return (
-              <tr key={item + 1}>
-                <td>{this.props.web3.toAscii(item)}</td>
-              </tr>
-            );
+            if(item !== "") {
+              return (
+                <tr key={item + i}>
+                  <td>{this.props.web3.toAscii(item)}</td>
+                </tr>
+              );
+            } else {
+              return (null);
+            }
+          })}
+        </tbody>
+      </table>
+    );
+  }
+}
+
+class TdLinkList extends Component {
+  render() {
+    return(
+      <table>
+        <tbody>
+          {this.props.array.split("///").map((item, i) => {
+            if(item !== "") {
+              return (
+                <tr key={item + i}>
+                  <td> <a href={'https://gateway.ipfs.io/ipfs//' + item} target="_blank"> {this.props.text} </a> </td>
+                </tr>
+              );
+            } else {
+              return (null);
+            }
           })}
         </tbody>
       </table>
@@ -41,7 +69,15 @@ class App extends Component {
       vehiclesQuantity: 0,
       vehicles: [],
       vehiclesDetail: [],
-      numberPlate: ''
+      vehicle: {
+        numberPlate: '',
+        brand: '',
+        model: '',
+        photos: ''
+      },
+      ipfs: {
+        buffer: ''
+      }
     }
 
     this.componentWillMount = this.componentWillMount.bind(this);
@@ -51,7 +87,7 @@ class App extends Component {
     this.handleUpdateVehicleOwner = this.handleUpdateVehicleOwner.bind(this);
   }
 
-  async componentWillMount() {
+  componentWillMount = async() => {
     let results = await getWeb3
     .catch(() => {
       console.log('Error finding web3.')
@@ -70,21 +106,44 @@ class App extends Component {
     //await this.getHistocalData();
   }
 
-  async initContracts() {
+  initContracts = async() => {
     const contract = require('truffle-contract');
     const vehicleFactory = contract(VehicleFactoryContract);
     vehicleFactory.setProvider(this.state.web3.currentProvider);
     const vehicleFactoryInstance = await vehicleFactory.deployed();
     this.setState({ vehicleFactoryInstance: vehicleFactoryInstance });
+
+    console.log(await vehicleFactoryInstance.contains("anitalavalatina", "lava"));
+    console.log(await vehicleFactoryInstance.contains("anitalavalatina", "anita"));
+    console.log(await vehicleFactoryInstance.contains("anitalavalatina", "ana"));
+    console.log(await vehicleFactoryInstance.contains("anitalavalatina", "tina"));
+
+
+    let _numberPlate = "";//this.state.vehicle.numberPlate + "dd";
+    let _brand = "";
+    let _model = "";
+    let _color = "";
+
+    console.log("getVehiclesFilteredWithContains", await vehicleFactoryInstance.getVehiclesFilteredWithContains(
+      _numberPlate, 
+      _brand, _model,
+      _color
+    ));
   }
 
-  elementsToHex(_asciiArray) {
+  elementsToHex = (_asciiArray) => {
     return _asciiArray.map((e) => {
       return this.state.web3.fromAscii(e);
     });
   }
 
-  async execGetVehicles() {
+  validateMaxLength = (array, maxLength = 32) => {
+    return array.map((e) => {
+      return e.length <= maxLength;
+    });
+  }
+
+  execGetVehicles = async() => {
     const vehicleFactoryInstance = this.state.vehicleFactoryInstance;
     console.log("--- Listar ---");
 
@@ -101,10 +160,10 @@ class App extends Component {
     }
   }
 
-  async execGetVehiclesFiltered(
+  execGetVehiclesFiltered = async(
     _numberPlate, _brand, _model, 
     _color
-  ) {
+  ) => {
     const web3 = this.state.web3;
     const vehicleFactoryInstance = this.state.vehicleFactoryInstance;
     console.log("--- Filtrar ---");
@@ -130,7 +189,7 @@ class App extends Component {
     }
   }
 
-  async execGetVehicleDetail(_numberPlate) {
+  execGetVehicleDetail = async(_numberPlate) => {
     const vehicleFactoryInstance = this.state.vehicleFactoryInstance;
 
     let vehicle = await vehicleFactoryInstance.getVehicle(_numberPlate);
@@ -139,16 +198,16 @@ class App extends Component {
     return vehicle;
   }
 
-  async execRegisterVehicle(
+  execRegisterVehicle = async(
     _numberPlate, _brand, _model, 
     _color, _serialNumber, _motorNumber, _reason,
     _photos, _documents, _ownersId, _ownersNames,
     _userAddress
-  ) {
+  ) => {
     const web3 = this.state.web3;
     const vehicleFactoryInstance = this.state.vehicleFactoryInstance;    
 
-    const exists = await vehicleFactoryInstance.vehicleExists(web3.fromAscii(_numberPlate));
+    let exists = await vehicleFactoryInstance.vehicleExists(web3.fromAscii(_numberPlate));
     if(exists) {
       this.setState({ 
         operation: {
@@ -159,8 +218,28 @@ class App extends Component {
       return false;
     }
 
-    //_photos = this.elementsToHex(_photos);
-    //_documents = this.elementsToHex(_documents);
+    exists = await vehicleFactoryInstance.serialNumberExists(web3.fromAscii(_serialNumber));
+    if(exists) {
+      this.setState({ 
+        operation: {
+          status: "onValidation",
+          message: "Este número de serie ya está registrado."
+        }
+      });
+      return false;
+    }
+
+    exists = await vehicleFactoryInstance.motorNumberExists(web3.fromAscii(_motorNumber));
+    if(exists) {
+      this.setState({ 
+        operation: {
+          status: "onValidation",
+          message: "Este número de motor ya está registrado."
+        }
+      });
+      return false;
+    }
+
     _photos = "QmfSPakJG6BgQkRmDusF2t5mzz5MYEJgtz6bTdZh3ac6jm";
     _documents = "QmfSPakJG6BgQkRmDusF2t5mzz5MYEJgtz6bTdZh3ac6jm";
     _ownersId = this.elementsToHex(_ownersId);
@@ -192,10 +271,10 @@ class App extends Component {
     return wasVehicleAdded;
   }
 
-  async execUpdateVehiclePhotos(
+  execUpdateVehiclePhotos = async(
     _numberPlate, _photos,
     _userAddress
-  ) {
+  ) => {
     const web3 = this.state.web3;
     const vehicleFactoryInstance = this.state.vehicleFactoryInstance;    
 
@@ -210,8 +289,7 @@ class App extends Component {
       return false;
     }
 
-    //_photos = this.elementsToHex(_photos);
-    _photos = "QmfSPakJG6BgQkRmDusF2t5mzz5MYEJgtz6bTdZh3ac6jm";
+    //_photos = "QmfSPakJG6BgQkRmDusF2t5mzz5MYEJgtz6bTdZh3ac6jm///QmfSPakJG6BgQkRmDusF2t5mzz5MYEJgtz6bTdZh3ac6jm///QmfSPakJG6BgQkRmDusF2t5mzz5MYEJgtz6bTdZh3ac6jm";
 
     let werePhotosSet = await vehicleFactoryInstance.updateVehiclePhotos(
       web3.fromAscii(_numberPlate), _photos,
@@ -236,7 +314,7 @@ class App extends Component {
   }
 
 
-  async manageVehicles(election = 1) {
+  manageVehicles = async(election = 1) => {
     const vehicleFactoryInstance = this.state.vehicleFactoryInstance;
 
     const vehicleCount = await vehicleFactoryInstance.getVehiclesCount.call();
@@ -245,7 +323,7 @@ class App extends Component {
     if (election === 1) {
       await this.execGetVehicles();
     } else {
-      let _numberPlate = this.state.numberPlate;
+      let _numberPlate = this.state.vehicle.numberPlate;
       let _brand = "TOYOTAD";
       let _model = "HILUX SURF SSR G WIDED";
       let _color = "DORADOD";
@@ -258,7 +336,7 @@ class App extends Component {
     await this.manageVehiclesDetail();
   }
 
-  async manageVehiclesDetail() {
+  manageVehiclesDetail = async() => {
     let promises = [];
     const vehicles = this.state.vehicles;
 
@@ -282,7 +360,7 @@ class App extends Component {
 
   
   // Failed :(
-  async getHistocalData() {
+  getHistocalData = async() => {
     const web3 = this.state.web3;
     const vehicleFactoryInstance = this.state.vehicleFactoryInstance;
     console.log(vehicleFactoryInstance.address);
@@ -295,11 +373,15 @@ class App extends Component {
     });
   }
 
-  handleNumberPlateChange(event) {
-    this.setState({ numberPlate: event.target.value });
+  handleNumberPlateChange = async(event) => {
+    this.setState({ 
+      vehicle: {
+        numberPlate: event.target.value
+      }
+     });
   }
 
-  async handleRegisterVehicle() {
+  handleRegisterVehicle = async() => {
     const web3 = this.state.web3;
 
     const accounts = web3.eth.accounts;
@@ -314,12 +396,12 @@ class App extends Component {
       return;
     }
 
-    let _numberPlate = this.state.numberPlate;
+    let _numberPlate = this.state.vehicle.numberPlate;
     let _brand = "TOYOTA";
     let _model = "HILUX SURF SSR G WIDE";
     let _color = "DORADO";
-    let _serialNumber = "KZN1859025037";
-    let _motorNumber = "1KZ0558403";
+    let _serialNumber = "KZN1859025037" + _numberPlate;
+    let _motorNumber = "1KZ0558403" + _numberPlate;
     let _reason = "Registro de nuevo vehículo";
     let _photos = ["Photo1", "Photo2"];
     let _documents = ["Doc1", "Doc2"];
@@ -336,10 +418,10 @@ class App extends Component {
 
     setTimeout(function() {
       this.manageVehicles();
-    }.bind(this), 3000);
+    }.bind(this), 5000);
   } 
 
-  async handleUpdateVehiclePhotos(_numberPlate) {
+  handleUpdateVehiclePhotos = async(_numberPlate) => {
     const web3 = this.state.web3;
 
     const accounts = web3.eth.accounts;
@@ -348,7 +430,7 @@ class App extends Component {
       return;
     }
 
-    let _photos = ["Photo1.1", "Photo2.2", _numberPlate];
+    let _photos = this.state.vehicle.photos;
     let _userAddress = accounts[0];
 
     await this.execUpdateVehiclePhotos(
@@ -358,10 +440,10 @@ class App extends Component {
 
     setTimeout(function() {
       this.manageVehicles();
-    }.bind(this), 3000);
+    }.bind(this), 5000);
   }
 
-  async handleUpdateVehicleOwner(_numberPlate) {
+  handleUpdateVehicleOwner = async(_numberPlate) => {
     const web3 = this.state.web3;
     const vehicleFactoryInstance = this.state.vehicleFactoryInstance;
 
@@ -403,9 +485,48 @@ class App extends Component {
 
     setTimeout(function() {
       this.manageVehicles();
-    }.bind(this), 3000);
+    }.bind(this), 5000);
   }
 
+  captureFile = (event) => {
+    event.stopPropagation();
+    event.preventDefault();
+    const file = event.target.files[0];
+    let reader = new window.FileReader();
+    reader.readAsArrayBuffer(file);
+    reader.onloadend = () => this.convertToBuffer(reader)  ;  
+  }
+
+  convertToBuffer = async(reader) => {
+    const buffer = await Buffer.from(reader.result);
+    this.setState({ 
+      ipfs: {
+        buffer
+      }
+     });
+  }
+
+  onSubmit = async (event) => {
+    event.preventDefault();
+
+    await ipfs.add(this.state.ipfs.buffer, (err, ipfsHash) => {
+      console.log(err, ipfsHash);
+
+      let photos;
+      console.log(photos);
+      if(this.state.vehicle.photos === "") {
+        photos = ipfsHash[0].hash;
+      } else {
+        photos = this.state.vehicle.photos + "///" + ipfsHash[0].hash;
+      }
+      
+      this.setState({ 
+        vehicle: {
+          photos
+        }
+       });
+    })
+  }
 
   render() {
     return (
@@ -425,18 +546,26 @@ class App extends Component {
               </div>
               <div>
                 <label> Plate Number: </label>
-                <input type="text" value={this.state.numberPlate} onChange={this.handleNumberPlateChange} />
+                <input type="text" value={this.state.vehicle.numberPlate} onChange={this.handleNumberPlateChange} />
               </div>
               <div>
                 <button onClick={() => this.handleRegisterVehicle()}>Register</button>
                 <button onClick={() => this.manageVehicles(2)}>Find</button>              
               </div>
             </div>
+            <Grid>
+              <input 
+                type="file"
+                onChange={this.captureFile} />
+              <button onClick={this.onSubmit}> 
+                Send it 
+              </button>            
+            </Grid>
             <br />
             <br />
             <div className="pure-g">
               <div className="pure-u-1-1">
-                <table>
+                <Table>
                   <tbody>
                     {this.state.vehicles.map((numberPlate) => {
                       return (
@@ -446,7 +575,7 @@ class App extends Component {
                       );
                     })}
                   </tbody>
-                </table>
+                </Table>
                 <table>
                   <thead>
                     <tr>
@@ -475,8 +604,8 @@ class App extends Component {
                             <td>{this.state.web3.toAscii(vehicle[4])}</td>
                             <td>{this.state.web3.toAscii(vehicle[5])}</td>
                             <td>{this.state.web3.toAscii(vehicle[6])}</td>
-                            <td> <a href={'https://gateway.ipfs.io/ipfs//' + vehicle[7]} target="_blank">Photo</a> </td>
-                            <td> <a href={'https://gateway.ipfs.io/ipfs//' + vehicle[8]} target="_blank">Doc</a> </td>
+                            <td> <TdLinkList web3={this.state.web3} array={vehicle[7]} text="Photo" /> </td>
+                            <td> <TdLinkList web3={this.state.web3} array={vehicle[8]} text="Doc" /> </td>
                             <td> <TdList web3={this.state.web3} array={vehicle[9]} /> </td>
                             <td> <TdList web3={this.state.web3} array={vehicle[10]} /> </td>
                             <td>{vehicle[11]}</td>

@@ -1,10 +1,13 @@
 pragma solidity ^0.4.24;
 //pragma experimental ABIEncoderV2;
 
+import "./strings.sol";
 import "./authorizable.sol";
 
 
 contract VehicleFactory is Authorizable {
+
+    using Strings for *;
 
     // Structs
     struct Vehicle {
@@ -116,6 +119,43 @@ contract VehicleFactory is Authorizable {
         return vehicles[_numberPlate].numberPlate > 0;
     }
 
+    function serialNumberExists
+    (
+        bytes32 _serialNumber
+    )
+    public view returns (bool) {
+
+        bool exists;
+        uint i = 0;
+        for(i = 0; i<vehiclesNumberPlate.length; i++) {
+            if( vehicles[vehiclesNumberPlate[i]].serialNumber == _serialNumber) {
+                exists = true;
+                break;
+            }
+        }
+
+        return exists;
+    }
+
+    function motorNumberExists
+    (
+        bytes32 _motorNumber
+    )
+    public view returns (bool) {
+
+        bool exists;
+        uint i = 0;
+        for(i = 0; i<vehiclesNumberPlate.length; i++) {
+            if( vehicles[vehiclesNumberPlate[i]].motorNumber == _motorNumber) {
+                exists = true;
+                break;
+            }
+        }
+
+        return exists;
+    }
+
+
     function registerVehicle
     (
         bytes32 _numberPlate, bytes32 _brand, bytes32 _model,
@@ -210,4 +250,68 @@ contract VehicleFactory is Authorizable {
         return true;
     }
 
+
+    function contains
+    (
+        string word, string filter
+    )
+    public view returns (bool) {
+        return Strings.contains(Strings.toSlice(word), Strings.toSlice(filter));
+    }
+
+    function getVehiclesFilteredWithContains
+    (
+        string _numberPlate, 
+        string _brand, string _model,
+        string _color
+    )
+    public view returns (bytes32[]) {
+        bytes32[] memory vehiclesFiltered = new bytes32[](vehiclesNumberPlate.length);
+        uint count = 0;
+        uint i = 0;
+        for(i = 0; i<vehiclesNumberPlate.length; i++) {
+
+            string memory numberPlate = bytes32ToString(vehicles[vehiclesNumberPlate[i]].numberPlate);
+            string memory brand = bytes32ToString(vehicles[vehiclesNumberPlate[i]].brand);
+            string memory model = bytes32ToString(vehicles[vehiclesNumberPlate[i]].model);
+            string memory color = bytes32ToString(vehicles[vehiclesNumberPlate[i]].color);
+
+            if( contains(numberPlate, _numberPlate) ||
+                contains(brand, _brand) ||
+                contains(model, _model) ||
+                contains(color, _color)) {
+                vehiclesFiltered[i] = vehiclesNumberPlate[i];
+                count++;
+            }
+        }
+
+        bytes32[] memory vehiclesResult = new bytes32[](count);
+        uint j = 0;
+        for(i = 0; i<vehiclesFiltered.length; i++) {
+            if(vehiclesFiltered[i] != bytes32(0)) {
+                vehiclesResult[j] = vehiclesFiltered[i];
+                j++;
+            }
+        }
+
+        return vehiclesResult;
+    }
+
+
+    function bytes32ToString(bytes32 x) internal pure returns (string) {
+        bytes memory bytesString = new bytes(32);
+        uint charCount = 0;
+        for (uint j = 0; j < 32; j++) {
+            byte char = byte(bytes32(uint(x) * 2 ** (8 * j)));
+            if (char != 0) {
+                bytesString[charCount] = char;
+                charCount++;
+            }
+        }
+        bytes memory bytesStringTrimmed = new bytes(charCount);
+        for (j = 0; j < charCount; j++) {
+            bytesStringTrimmed[j] = bytesString[j];
+        }
+        return string(bytesStringTrimmed);
+    }
 }
